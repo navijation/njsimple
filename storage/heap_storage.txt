@@ -1,0 +1,197 @@
+package storage
+
+import (
+	"encoding/binary"
+	"io"
+	"os"
+)
+
+var zeroBytes [16 * 4096]byte
+
+const inUseMask = uint64(1) << 63
+
+var nullByte = [1]byte{}
+
+type HeapFile struct {
+	Path string
+	File *os.File
+	Size uint64
+}
+
+type LoadHeapFileArgs struct {
+	Path   string
+	Exists bool
+}
+
+func LoadHeapFile(args LoadHeapFileArgs) (out HeapFile, _ error) {
+	flags := os.O_RDWR
+	if !args.Exists {
+		flags |= os.O_TRUNC
+	} else {
+		flags |= os.O_CREATE
+	}
+	f, err := os.OpenFile(args.Path, flags, 0)
+	if err != nil {
+		return out, err
+	}
+
+	if !args.Exists {
+
+	}
+
+	info, err := f.Stat()
+	if err != nil {
+		return out, err
+	}
+
+	return HeapFile{
+		Path: args.Path,
+		File: f,
+		Size: uint64(info.Size()),
+	}, nil
+}
+
+type HeapBlock struct {
+	Offset uint64
+	Size   uint64
+	Bytes  []byte
+}
+
+func (me *HeapBlock) DataOffset() uint64 {
+	return me.Offset + 8
+}
+
+func (me *HeapBlock) EndOffset() uint64 {
+	return me.Offset + 8 + me.Size
+}
+
+type LoadBlockArgs struct {
+	Offset   uint64
+	LoadData bool
+}
+
+func (me *HeapFile) LoadBlock(args LoadBlockArgs) (out HeapBlock, _ error) {
+	offset := args.Offset
+
+	me.File.Seek(int64(offset), io.SeekStart)
+
+	sizeBuf, err := me.read8Bytes()
+	if err != nil {
+		return out, err
+	}
+	size := parseBytes8BigEndian(sizeBuf)
+
+	var buf []byte
+	if args.LoadData {
+		buf = make([]byte, size)
+		_, err = me.File.Read(buf[:])
+		if err != nil {
+			return out, err
+		}
+	}
+
+	return HeapBlock{
+		Offset: offset,
+		Size:   size,
+		Bytes:  buf,
+	}, nil
+}
+
+type LoadNextBlockArgs struct {
+	Block    *HeapBlock
+	LoadData bool
+}
+
+func (me *HeapFile) LoadNextBlock(args LoadNextBlockArgs) (out HeapBlock, _ error) {
+	newOffset, err := me.File.Seek(io.SeekStart, int(args.Block.EndOffset()))
+	if err != nil {
+		return out, err
+	}
+
+	if newOffset >= int64(me.Size) {
+		return out, io.EOF
+	}
+
+	return out, nil
+}
+
+func (me *HeapFile) CommitBlock(block *HeapBlock) error {
+	if block.Bytes == nil {
+		return nil
+	}
+
+	if _, err := me.File.Seek(io.SeekStart, int(block.Offset)); err != nil {
+		return err
+	}
+
+	sizeBytes := intToBytes8BigEndian(block.Size)
+	if err := me.write8Bytes(sizeBytes); err != nil {
+		return err
+	}
+
+	if err := me.File.Write(block.Bytes); err != nil {
+		
+	}
+
+	return me.File.Sync()
+}
+
+func (me *HeapFile) AppendBlock(blockSize uint64, data []byte) (out HeapBlock, _ error) {
+	oldSize := me.Size
+
+	if data == nil {
+		data = zeroBytes[:blockSize]
+	}
+
+	out = HeapBlock{
+		Offset: oldSize,
+		Size:   blockSize,
+		Bytes:  data,
+	}
+
+	if err := me.CommitBlock(&out); err != nil {
+		return out, err
+	}
+
+	return out, nil
+}
+
+func (me *HeapFile) write8Bytes(in [8]byte) error {
+	_, err := me.File.Write(in[:])
+	return err
+}
+
+func (me *HeapFile) read8Bytes() (out [8]byte, _ error) {
+	sizeBuf := [8]byte{}
+	_, err := me.File.Read(sizeBuf[:])
+	if err != nil {
+		return out, err
+	}
+	return sizeBuf, nil
+}
+
+func (me *HeapFile) writeHeader() error {
+	_, err := me.File.Seek(0, io.SeekStart) 
+	if err != nil {
+		return err
+	}
+	var headerBytes [16]byte
+	binary.BigEndian.PutUint64(headerBytes, me.Size)
+	me.write8Bytes(intToBytes8BigEndian(me.Size))
+}
+
+func (me *HeapFile) readBytes(n int64) ([]byte, error) {
+	buf := make([]byte, n)
+	if _, err := me.File.Read(buf); err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+func parseBytes8BigEndian(intBytes [8]byte) uint64 {
+	return binary.BigEndian.Uint64(intBytes[:])
+}
+
+func intToBytes8BigEndian(integer uint64) (out [8]byte) {
+	binary.BigEndian.PutUint64(out[:], integer)
+}
