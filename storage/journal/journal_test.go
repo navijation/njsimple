@@ -206,7 +206,7 @@ func TestJournal_CorruptionHandling(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, file.header, corruptedFile.header)
 		assert.Equal(t, file.numberOfEntries-1, corruptedFile.numberOfEntries)
-		assert.Equal(t, file.size-entry2.Size(), corruptedFile.size)
+		assert.Equal(t, file.size-entry2.SizeOf(), corruptedFile.size)
 		assert.False(t, corruptedFile.isBad)
 		assert.Equal(t, hash1, corruptedFile.hash.Sum(nil))
 	})

@@ -26,7 +26,7 @@ type JournalCursor struct {
 
 func (me *JournalFile) NewCursor(checkSum bool) (out JournalCursor, _ error) {
 	// skip header
-	offset := me.header.Size()
+	offset := me.header.SizeOf()
 
 	out = JournalCursor{
 		parent:         me,
@@ -101,7 +101,7 @@ func (me *JournalCursor) NextEntry() (out JournalEntry, exists bool, _ error) {
 
 	me.hasCurrentEntry = true
 	me.entryNumber++
-	me.offset += internalEntry.Size()
+	me.offset += internalEntry.SizeOf()
 
 	return me.currentEntry, true, nil
 }

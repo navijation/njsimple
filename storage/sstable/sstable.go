@@ -14,9 +14,16 @@ import (
 )
 
 const (
-	defaultChunkSize uint64 = 10
+	defaultChunkSize uint64 = 100
 )
 
+// SSTable in disk structure. It's a simple header (see header.go) and an implicit linked list of
+// variable-length entries (see entry.go).
+// ______________________________________________________
+// | 40 bytes  |      (Header.FileSize - 40) bytes      |
+// |----------------------------------------------------|
+// | Header    |      entry1, entry2, entry3...         |
+// |----------------------------------------------------|
 type SSTable struct {
 	path string
 
@@ -34,6 +41,8 @@ type OpenArgs struct {
 	IndexChunkSize util.Optional[uint64]
 }
 
+// Open a new or existing SSTable file, build in-memory indexes, and deleted trailing data after
+// the header.
 func Open(args OpenArgs) (out SSTable, _ error) {
 	flags := os.O_RDWR
 	if args.Create {
@@ -84,29 +93,16 @@ func Open(args OpenArgs) (out SSTable, _ error) {
 	return out, nil
 }
 
+// Close the file descriptor associated with this SSTable.
 func (me *SSTable) Close() error {
-	return me.file.Close()
-}
-
-func (me *SSTable) Header() Header {
-	return me.header
-}
-
-func (me *SSTable) Index() SparseMemIndex {
-	return SparseMemIndex{
-		ChunkSize: me.index.ChunkSize,
-		IndexedEntries: util.CloneSliceFunc(
-			me.index.IndexedEntries,
-			func(entry SparseMemIndexEntry) SparseMemIndexEntry {
-				return SparseMemIndexEntry{
-					Key:      slices.Clone(entry.Key),
-					Location: entry.Location,
-				}
-			},
-		),
+	if me.file != nil {
+		return me.file.Close()
 	}
+	return nil
 }
 
+// Lookup an entry in the table by key. The resulting entry, if it exists, will indicate the
+// location of the entry in the file, the value, and whether it is deleted.
 func (me *SSTable) LookupEntry(key []byte) (out SSTableEntry, exists bool, _ error) {
 	location := me.index.LookupSearchLocation(key)
 
@@ -127,12 +123,19 @@ func (me *SSTable) LookupEntry(key []byte) (out SSTableEntry, exists bool, _ err
 	return out, false, nil
 }
 
+// Return an iterator over all entries in the SSTable, starting from the first entry.
+//
+// This iterator will not load all entries into memory at once.
 func (me *SSTable) Entries() iter.Seq2[SSTableEntry, error] {
 	return me.EntriesAt(EntryLocation{
 		EntryNumber: 0,
 	})
 }
 
+// Return an iterator over all entries in the SSTable, starting from a specific entry
+// location.
+//
+// This iterator will not load all entries into memory at once.
 func (me *SSTable) EntriesAt(location EntryLocation) iter.Seq2[SSTableEntry, error] {
 	if location.EntryNumber == 0 {
 		location.Offset = me.header.SizeOf()
@@ -159,6 +162,10 @@ func (me *SSTable) EntriesAt(location EntryLocation) iter.Seq2[SSTableEntry, err
 	}
 }
 
+// Append entries in bulk to the end of the SSTable and rebuild indexes. Keys must be appended
+// in sorted order or this method will return an error and abort all writes.
+//
+// This function will not return success until all writes have been fully committed to disk.
 func (me *SSTable) AppendEntries(keyValuePairs iter.Seq[KeyValuePair]) (err error) {
 	fileWrapper := util.NewFileWrapperAt(me.file, me.header.FileSize)
 
@@ -237,6 +244,25 @@ func (me *SSTable) Reindex() error {
 	}
 
 	return nil
+}
+
+func (me *SSTable) Header() Header {
+	return me.header
+}
+
+func (me *SSTable) Index() SparseMemIndex {
+	return SparseMemIndex{
+		ChunkSize: me.index.ChunkSize,
+		IndexedEntries: util.CloneSliceFunc(
+			me.index.IndexedEntries,
+			func(entry SparseMemIndexEntry) SparseMemIndexEntry {
+				return SparseMemIndexEntry{
+					Key:      slices.Clone(entry.Key),
+					Location: entry.Location,
+				}
+			},
+		),
+	}
 }
 
 func (me *SSTable) partialReindex() error {

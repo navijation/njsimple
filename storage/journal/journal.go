@@ -149,7 +149,7 @@ func (me *JournalFile) AppendEntry(content []byte) (out JournalEntry, err error)
 	}
 
 	me.numberOfEntries++
-	me.size += internalEntry.Size()
+	me.size += internalEntry.SizeOf()
 
 	return
 }
@@ -195,7 +195,7 @@ func (me *JournalFile) checkSumOnce() (sumMatches bool, _ error) {
 	}
 
 	me.hash = cursor.hash
-	offset := me.header.Size()
+	offset := me.header.SizeOf()
 	me.numberOfEntries = 0
 	for {
 		entry, exists, err := cursor.NextEntry()
@@ -239,7 +239,7 @@ type internalJournalEntry struct {
 	signature   [32]byte
 }
 
-func (me *internalJournalEntry) Size() uint64 {
+func (me *internalJournalEntry) SizeOf() uint64 {
 	return 8 + me.contentSize + 32
 }
 
@@ -325,7 +325,7 @@ func (me *journalFileHeader) WriteHash(h hash.Hash) {
 	util.AssertNoError(err)
 }
 
-func (me *journalFileHeader) Size() uint64 {
+func (me *journalFileHeader) SizeOf() uint64 {
 	return 24
 }
 
@@ -337,10 +337,10 @@ type JournalEntry struct {
 	Signature   []byte
 }
 
-func (me *JournalEntry) Size() uint64 {
+func (me *JournalEntry) SizeOf() uint64 {
 	return 8 + me.ContentSize + 32
 }
 
 func (me *JournalEntry) EndOffset() uint64 {
-	return me.Offset + me.Size()
+	return me.Offset + me.SizeOf()
 }

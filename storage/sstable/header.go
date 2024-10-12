@@ -6,6 +6,11 @@ import (
 	"github.com/navijation/njsimple/util"
 )
 
+// ______________________________________________________
+// | 16 bytes  |   8 bytes  |    8 bytes   | 8 bytes    |
+// |----------------------------------------------------|
+// | ID        |  file size |  num entries | version    |
+// |----------------------------------------------------|
 type Header struct {
 	ID         [16]byte
 	FileSize   uint64
