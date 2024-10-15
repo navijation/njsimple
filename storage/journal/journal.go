@@ -9,8 +9,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/google/uuid"
-
 	"github.com/navijation/njsimple/util"
 )
 
@@ -105,7 +103,10 @@ func Open(args OpenArgs) (out JournalFile, err error) {
 }
 
 func (me *JournalFile) Close() error {
-	return me.file.Close()
+	if me.file != nil {
+		return me.file.Close()
+	}
+	return nil
 }
 
 func (me *JournalFile) AppendEntry(content []byte) (out JournalEntry, err error) {
@@ -154,6 +155,18 @@ func (me *JournalFile) AppendEntry(content []byte) (out JournalEntry, err error)
 	return
 }
 
+func (me *JournalFile) Rename(newPath string) error {
+	if err := os.Rename(me.path, newPath); err != nil {
+		return err
+	}
+	me.path = newPath
+	return nil
+}
+
+func (me *JournalFile) Path() string {
+	return me.path
+}
+
 func (me *JournalFile) fileWrapperAt(offset uint64) util.FileWrapper {
 	return util.NewFileWrapperAt(me.file, offset)
 }
@@ -189,10 +202,7 @@ func (me *JournalFile) checkSumOnce() (sumMatches bool, _ error) {
 		return false, err
 	}
 
-	cursor, err := me.NewCursor(true)
-	if err != nil {
-		return false, err
-	}
+	cursor := me.NewCursor(true)
 
 	me.hash = cursor.hash
 	offset := me.header.SizeOf()
@@ -231,116 +241,4 @@ func (me *JournalFile) checkSumOnce() (sumMatches bool, _ error) {
 	}
 
 	return sumMatches, nil
-}
-
-type internalJournalEntry struct {
-	contentSize uint64
-	content     []byte
-	signature   [32]byte
-}
-
-func (me *internalJournalEntry) SizeOf() uint64 {
-	return 8 + me.contentSize + 32
-}
-
-func (me *internalJournalEntry) WriteTo(writer io.Writer) (n int64, err error) {
-	if dn, err := util.WriteUint64(writer, me.contentSize); err != nil {
-		return n + int64(dn), err
-	} else {
-		n += int64(dn)
-	}
-
-	if dn, err := writer.Write(me.content[:]); err != nil {
-		return n + int64(dn), err
-	} else {
-		n += int64(dn)
-	}
-
-	if dn, err := writer.Write(me.signature[:]); err != nil {
-		return n + int64(dn), err
-	} else {
-		n += int64(dn)
-	}
-
-	return n, nil
-}
-
-func (me *internalJournalEntry) WriteHash(hash hash.Hash) {
-	_, err := util.WriteUint64(hash, me.contentSize)
-	util.AssertNoError(err)
-
-	_, err = hash.Write(me.content)
-	util.AssertNoError(err)
-}
-
-func (me *internalJournalEntry) ReadSignature(hash hash.Hash) {
-	hashBytes := hash.Sum(nil)
-
-	copy(me.signature[:], hashBytes[:])
-
-}
-
-type journalFileHeader struct {
-	id    [16]byte
-	start uint64
-}
-
-func (me *journalFileHeader) Read(reader io.Reader) error {
-	var idWord [16]byte
-	_, err := io.ReadAtLeast(reader, idWord[:], len(idWord))
-	if err != nil {
-		return err
-	}
-
-	me.id = uuid.Must(uuid.FromBytes(idWord[:]))
-
-	startWord, err := util.Word64{}.Read(reader)
-	if err != nil {
-		return err
-	}
-	me.start = startWord.Uint64()
-
-	return nil
-}
-
-func (me *journalFileHeader) WriteTo(writer io.Writer) (n int64, err error) {
-	if dn, err := writer.Write(me.id[:]); err != nil {
-		return n + int64(dn), err
-	} else {
-		n += int64(dn)
-	}
-
-	// try writing everything
-	if dn, err := util.WriteUint64(writer, me.start); err != nil {
-		return n + int64(dn), err
-	} else {
-		n += int64(dn)
-	}
-
-	return n, nil
-}
-
-func (me *journalFileHeader) WriteHash(h hash.Hash) {
-	_, err := me.WriteTo(h)
-	util.AssertNoError(err)
-}
-
-func (me *journalFileHeader) SizeOf() uint64 {
-	return 24
-}
-
-type JournalEntry struct {
-	EntryNumber uint64
-	Offset      uint64
-	ContentSize uint64
-	Content     []byte
-	Signature   []byte
-}
-
-func (me *JournalEntry) SizeOf() uint64 {
-	return 8 + me.ContentSize + 32
-}
-
-func (me *JournalEntry) EndOffset() uint64 {
-	return me.Offset + me.SizeOf()
 }

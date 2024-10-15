@@ -2,17 +2,17 @@ package sstable
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/navijation/njsimple/util"
+	testing_util "github.com/navijation/njsimple/util/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSSTable_Merge(t *testing.T) {
-	dir := getTemporaryDir(t, "TestSSTable_Merge")
-	defer os.RemoveAll(dir)
+	dir, cleanup := testing_util.MkdirTemp(t, "TestSSTable_Merge")
+	defer cleanup()
 
 	t.Run("no tables", func(t *testing.T) {
 		dst, err := Open(OpenArgs{

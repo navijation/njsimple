@@ -47,7 +47,7 @@ func TestKeyValuePair_ToInternalSSTableEntry(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expected, tc.kvp.ToInternalSSTableEntry())
+			assert.Equal(t, tc.expected, internalSSTableEntry{}.FromKeyValuePair(tc.kvp))
 		})
 	}
 }

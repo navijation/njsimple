@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/navijation/njsimple/storage/sstable"
+	"github.com/navijation/njsimple/util"
 	"github.com/urfave/cli/v3"
 )
 
@@ -19,8 +19,10 @@ func mergeSSTables(_ context.Context, cmd *cli.Command) error {
 	destPath := cmd.Args().Get(0)
 
 	var create bool
-	if _, err := os.Stat(destPath); errors.Is(err, os.ErrNotExist) {
-		create = true
+	if exists, err := util.FileExists(destPath); err != nil {
+		return err
+	} else {
+		create = !exists
 	}
 
 	file, err := sstable.Open(sstable.OpenArgs{

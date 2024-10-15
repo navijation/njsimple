@@ -185,7 +185,7 @@ func (me *SSTable) AppendEntries(keyValuePairs iter.Seq[KeyValuePair]) (err erro
 			log.Printf("tried to append %v after last key %v", keyValuePair.Key, lastKey)
 			return fmt.Errorf("out of order entry append attempt")
 		}
-		entry := keyValuePair.ToInternalSSTableEntry()
+		entry := internalSSTableEntry{}.FromKeyValuePair(keyValuePair)
 
 		n, err := entry.WriteTo(&fileWrapper)
 		if err != nil {
@@ -246,6 +246,10 @@ func (me *SSTable) Reindex() error {
 	return nil
 }
 
+func (me *SSTable) Path() string {
+	return me.path
+}
+
 func (me *SSTable) Header() Header {
 	return me.header
 }
@@ -263,6 +267,14 @@ func (me *SSTable) Index() SparseMemIndex {
 			},
 		),
 	}
+}
+
+func (me *SSTable) Rename(newPath string) error {
+	if err := os.Rename(me.path, newPath); err != nil {
+		return err
+	}
+	me.path = newPath
+	return nil
 }
 
 func (me *SSTable) partialReindex() error {

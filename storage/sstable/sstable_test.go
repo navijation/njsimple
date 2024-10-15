@@ -2,10 +2,10 @@ package sstable
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/navijation/njsimple/util"
+	testing_util "github.com/navijation/njsimple/util/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -13,8 +13,8 @@ import (
 func TestOpen_NoEntries(t *testing.T) {
 	t.Parallel()
 
-	dir := getTemporaryDir(t, "TestOpen_NewSSTable")
-	defer os.RemoveAll(dir)
+	dir, cleanup := testing_util.MkdirTemp(t, "TestOpen_NewSSTable")
+	defer cleanup()
 
 	_, err := Open(OpenArgs{
 		Path: dir + "/nonexistent.jrn",
@@ -61,8 +61,8 @@ func TestOpen_NoEntries(t *testing.T) {
 func TestSSTable_AppendAndIterate(t *testing.T) {
 	t.Parallel()
 
-	dir := getTemporaryDir(t, "TestSSTable_AppendAndIterate")
-	defer os.RemoveAll(dir)
+	dir, cleanup := testing_util.MkdirTemp(t, "TestSSTable_AppendAndIterate")
+	defer cleanup()
 
 	file, err := Open(OpenArgs{
 		Path:           dir + "/sstable.sst",
@@ -157,8 +157,8 @@ func TestSSTable_AppendAndIterate(t *testing.T) {
 func TestSSTable_LookupEntry(t *testing.T) {
 	t.Parallel()
 
-	dir := getTemporaryDir(t, "TestSSTable_AppendAndIterate")
-	defer os.RemoveAll(dir)
+	dir, cleanup := testing_util.MkdirTemp(t, "TestSSTable_AppendAndIterate")
+	defer cleanup()
 
 	file, err := Open(OpenArgs{
 		Path:           dir + "/sstable.sst",
@@ -205,13 +205,4 @@ func TestSSTable_LookupEntry(t *testing.T) {
 			assert.False(t, exists, "%s", key)
 		}
 	})
-}
-
-func getTemporaryDir(t *testing.T, prefix string) (path string) {
-	out, err := os.MkdirTemp(os.TempDir(), prefix)
-	if err != nil {
-		t.Fatalf("failed to create temporary directory: %v", err)
-	}
-
-	return out
 }
