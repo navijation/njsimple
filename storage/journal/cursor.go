@@ -24,7 +24,7 @@ type JournalCursor struct {
 	currentEntry    JournalEntry
 }
 
-func (me *JournalFile) NewCursor(checkSum bool) (out JournalCursor, _ error) {
+func (me *JournalFile) NewCursor(checkSum bool) (out JournalCursor) {
 	// skip header
 	offset := me.header.SizeOf()
 
@@ -44,7 +44,7 @@ func (me *JournalFile) NewCursor(checkSum bool) (out JournalCursor, _ error) {
 		out.hash = sha256.New()
 		me.header.WriteHash(out.hash)
 	}
-	return out, nil
+	return out
 }
 
 // Next entry gets the next entry

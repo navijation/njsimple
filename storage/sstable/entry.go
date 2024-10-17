@@ -20,12 +20,6 @@ type SSTableEntry struct {
 	IsDeleted bool
 }
 
-type KeyValuePair struct {
-	Key       []byte
-	Value     []byte
-	IsDeleted bool
-}
-
 type EntryLocation struct {
 	EntryNumber uint64
 	Offset      uint64
@@ -43,14 +37,14 @@ type internalSSTableEntry struct {
 	Value               []byte
 }
 
-func (me *KeyValuePair) ToInternalSSTableEntry() internalSSTableEntry {
+func (me internalSSTableEntry) FromKeyValuePair(kvp KeyValuePair) internalSSTableEntry {
 	out := internalSSTableEntry{
-		keySizeAndTombstone: uint64(len(me.Key)),
-		ValueSize:           uint64(len(me.Value)),
-		Key:                 me.Key,
-		Value:               me.Value,
+		keySizeAndTombstone: uint64(len(kvp.Key)),
+		ValueSize:           uint64(len(kvp.Value)),
+		Key:                 kvp.Key,
+		Value:               kvp.Value,
 	}
-	out.SetIsDeleted(me.IsDeleted)
+	out.SetIsDeleted(kvp.IsDeleted)
 
 	return out
 }

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bytes"
 	"encoding/binary"
 	"io"
 
@@ -82,4 +83,35 @@ func NewRandomUUIDBytes() (out [16]byte) {
 
 func UUIDFromBytes(bytes [16]byte) uuid.UUID {
 	return uuid.Must(uuid.FromBytes(bytes[:]))
+}
+
+// https://blog.merovius.de/posts/2024-05-06-pointer-constraints/
+type WriterToPtr[M any] interface {
+	*M
+	io.WriterTo
+}
+
+func ToBytes(writerTo io.WriterTo) ([]byte, error) {
+	var buf bytes.Buffer
+	_, err := writerTo.WriteTo(&buf)
+	return buf.Bytes(), err
+}
+
+func ValueToBytes[T any, PT WriterToPtr[T]](value T) ([]byte, error) {
+	var buf bytes.Buffer
+	_, err := (PT)(&value).WriteTo(&buf)
+	return buf.Bytes(), err
+}
+
+type ReaderFromPtr[M any] interface {
+	*M
+	io.ReaderFrom
+}
+
+func ValueFromBytes[T any, PT ReaderFromPtr[T]](b []byte) (T, error) {
+	var buf bytes.Buffer
+	_, _ = buf.Write(b)
+	var value T
+	_, err := (PT)(&value).ReadFrom(&buf)
+	return value, err
 }

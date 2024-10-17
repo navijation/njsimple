@@ -118,8 +118,7 @@ func TestJournal_AppendAndIterate(t *testing.T) {
 	})
 
 	t.Run("cursor", func(t *testing.T) {
-		cursor, err := sameFile.NewCursor(true)
-		require.NoError(t, err)
+		cursor := sameFile.NewCursor(true)
 
 		entry1Copy, exists, err := cursor.NextEntry()
 
