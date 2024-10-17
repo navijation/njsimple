@@ -1,6 +1,8 @@
 package lsm
 
-import "github.com/navijation/njsimple/storage/keyvaluepair"
+import (
+	"github.com/navijation/njsimple/storage/keyvaluepair"
+)
 
 func (me *LSMDB) Upsert(key, value []byte) error {
 	ctx := &dbCtx{}
@@ -8,7 +10,7 @@ func (me *LSMDB) Upsert(key, value []byte) error {
 	ctx.Lock(&me.lock)
 	defer ctx.Unlock(&me.lock)
 
-	if err := me.checkStateErrorSafe(ctx); err != nil {
+	if err := me.checkStateError(ctx); err != nil {
 		return err
 	}
 

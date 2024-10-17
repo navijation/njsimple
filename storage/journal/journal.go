@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"log"
 	"os"
 
 	"github.com/navijation/njsimple/util"
@@ -118,6 +119,7 @@ func (me *JournalFile) AppendEntry(content []byte) (out JournalEntry, err error)
 
 	defer func() {
 		if err != nil {
+			log.Printf("Failed to write entry: %s\n", err.Error())
 			// TODO: the hash won't be valid if appending an entry fails; need to somehow preserve old
 			// hash value; Go's library doesn't make it easy, so just going to recompute entire journal
 			// checksum for now whenever something fails
@@ -133,6 +135,7 @@ func (me *JournalFile) AppendEntry(content []byte) (out JournalEntry, err error)
 	internalEntry.ReadSignature(me.hash)
 
 	endOfFile := me.fileWrapperAt(me.size)
+
 	if _, err := internalEntry.WriteTo(&endOfFile); err != nil {
 		return out, err
 	}
@@ -165,6 +168,14 @@ func (me *JournalFile) Rename(newPath string) error {
 
 func (me *JournalFile) Path() string {
 	return me.path
+}
+
+func (me *JournalFile) Size() uint64 {
+	return me.size
+}
+
+func (me *JournalFile) NumEntries() uint64 {
+	return me.numberOfEntries
 }
 
 func (me *JournalFile) fileWrapperAt(offset uint64) util.FileWrapper {

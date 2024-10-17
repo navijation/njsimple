@@ -29,8 +29,8 @@ func TestOpen_NoEntries(t *testing.T) {
 
 	assert.Equal(t, uint64(5), file.header.start)
 	assert.NotZero(t, file.header.id)
-	assert.Equal(t, uint64(0), file.numberOfEntries)
-	assert.Equal(t, uint64(24), file.size)
+	assert.Equal(t, uint64(0), file.NumEntries())
+	assert.Equal(t, uint64(24), file.Size())
 	assert.False(t, file.isBad)
 	assert.NotNil(t, file.hash)
 	assert.NotEqual(t, sha256.New().Sum(nil), file.hash.Sum(nil))
@@ -51,7 +51,7 @@ func TestOpen_NoEntries(t *testing.T) {
 
 	assert.Equal(t, file.header, sameFile.header)
 	assert.Equal(t, file.numberOfEntries, sameFile.numberOfEntries)
-	assert.Equal(t, file.size, sameFile.size)
+	assert.Equal(t, file.Size(), sameFile.Size())
 	assert.Equal(t, file.isBad, sameFile.isBad)
 	assert.Equal(t, file.hash.Sum(nil), sameFile.hash.Sum(nil))
 }
@@ -82,7 +82,7 @@ func TestJournal_AppendAndIterate(t *testing.T) {
 		assert.Equal(t, uint64(5), file.header.start)
 		assert.NotZero(t, file.header.id)
 		assert.Equal(t, uint64(1), file.numberOfEntries)
-		assert.Equal(t, uint64(76), file.size)
+		assert.Equal(t, uint64(76), file.Size())
 		assert.False(t, file.isBad)
 		assert.NotNil(t, file.hash)
 	})
@@ -100,7 +100,7 @@ func TestJournal_AppendAndIterate(t *testing.T) {
 		assert.Equal(t, uint64(5), file.header.start)
 		assert.NotZero(t, file.header.id)
 		assert.Equal(t, uint64(2), file.numberOfEntries)
-		assert.Equal(t, uint64(130), file.size)
+		assert.Equal(t, uint64(130), file.Size())
 		assert.False(t, file.isBad)
 		assert.NotNil(t, file.hash)
 	})
@@ -111,8 +111,8 @@ func TestJournal_AppendAndIterate(t *testing.T) {
 	t.Run("re-open file", func(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, file.header, sameFile.header)
-		assert.Equal(t, file.numberOfEntries, sameFile.numberOfEntries)
-		assert.Equal(t, file.size, sameFile.size)
+		assert.Equal(t, file.NumEntries(), sameFile.NumEntries())
+		assert.Equal(t, file.Size(), sameFile.Size())
 		assert.Equal(t, file.isBad, sameFile.isBad)
 		assert.Equal(t, file.hash.Sum(nil), sameFile.hash.Sum(nil))
 	})
@@ -131,7 +131,7 @@ func TestJournal_AppendAndIterate(t *testing.T) {
 		// file should not be mutated by cursor
 		assert.Equal(t, file.header, sameFile.header)
 		assert.Equal(t, file.numberOfEntries, sameFile.numberOfEntries)
-		assert.Equal(t, file.size, sameFile.size)
+		assert.Equal(t, file.Size(), sameFile.Size())
 		assert.Equal(t, file.isBad, sameFile.isBad)
 		assert.Equal(t, file.hash.Sum(nil), sameFile.hash.Sum(nil))
 
@@ -172,7 +172,7 @@ func TestJournal_CorruptionHandling(t *testing.T) {
 		rawFile, err := os.OpenFile(file.path, os.O_RDWR, 0)
 		require.NoError(t, err)
 
-		_, err = rawFile.WriteAt([]byte("deadbeef"), int64(file.size))
+		_, err = rawFile.WriteAt([]byte("deadbeef"), int64(file.Size()))
 		require.NoError(t, err)
 
 		assert.NoError(t, rawFile.Close())
@@ -184,7 +184,7 @@ func TestJournal_CorruptionHandling(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, file.header, sameFile.header)
 		assert.Equal(t, file.numberOfEntries, sameFile.numberOfEntries)
-		assert.Equal(t, file.size, sameFile.size)
+		assert.Equal(t, file.Size(), sameFile.Size())
 		assert.Equal(t, file.isBad, sameFile.isBad)
 		assert.Equal(t, file.hash.Sum(nil), sameFile.hash.Sum(nil))
 	})
@@ -193,7 +193,7 @@ func TestJournal_CorruptionHandling(t *testing.T) {
 		rawFile, err := os.OpenFile(file.path, os.O_RDWR, 0)
 		require.NoError(t, err)
 
-		_, err = rawFile.WriteAt([]byte("deadbeef"), int64(file.size-8))
+		_, err = rawFile.WriteAt([]byte("deadbeef"), int64(file.Size()-8))
 		require.NoError(t, err)
 
 		assert.NoError(t, rawFile.Close())
@@ -205,7 +205,7 @@ func TestJournal_CorruptionHandling(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, file.header, corruptedFile.header)
 		assert.Equal(t, file.numberOfEntries-1, corruptedFile.numberOfEntries)
-		assert.Equal(t, file.size-entry2.SizeOf(), corruptedFile.size)
+		assert.Equal(t, file.Size()-entry2.SizeOf(), corruptedFile.Size())
 		assert.False(t, corruptedFile.isBad)
 		assert.Equal(t, hash1, corruptedFile.hash.Sum(nil))
 	})

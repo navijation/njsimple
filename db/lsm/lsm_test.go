@@ -82,6 +82,14 @@ func TestLSMDB_StartClose(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	assert.False(t, db.isRunning.Load())
+
 	require.NoError(t, db.Start())
+
+	assert.True(t, db.isRunning.Load())
+
 	require.NoError(t, db.Close())
+
+	assert.Empty(t, db.done)
+	assert.NoError(t, db.stateErr)
 }
