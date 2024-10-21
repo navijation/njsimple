@@ -46,3 +46,19 @@ func (me *dbCtx) RUnlock(lock *sync.RWMutex) {
 	}
 	me.ReadLockCounter--
 }
+
+func (me *dbCtx) LiftLock(lock *sync.RWMutex) {
+	if me.WriteLockCounter > 0 {
+		lock.Unlock()
+	} else {
+		lock.RUnlock()
+	}
+}
+
+func (me *dbCtx) ReinstateLock(lock *sync.RWMutex) {
+	if me.WriteLockCounter > 0 {
+		lock.Lock()
+	} else {
+		lock.RLock()
+	}
+}

@@ -127,11 +127,13 @@ func (me *internalSSTableEntry) ReadFrom(reader io.Reader) (n int64, err error) 
 	}
 	me.ValueSize = valueSize
 
-	me.Value = make([]byte, valueSize)
-	dn, err = io.ReadAtLeast(reader, me.Value, int(valueSize))
-	n += int64(dn)
-	if err != nil {
-		return n, err
+	if me.ValueSize > 0 {
+		me.Value = make([]byte, valueSize)
+		dn, err = io.ReadAtLeast(reader, me.Value, int(valueSize))
+		n += int64(dn)
+		if err != nil {
+			return n, err
+		}
 	}
 
 	return n, nil

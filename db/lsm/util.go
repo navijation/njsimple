@@ -21,7 +21,7 @@ func (me *LSMDB) appendEntry(ctx *dbCtx, entry io.WriterTo) error {
 	return nil
 }
 
-func (me *LSMDB) checkStateErrorSafe(ctx *dbCtx) error {
+func (me *LSMDB) checkStateError(ctx *dbCtx) error {
 	if !me.isRunning.Load() {
 		return fmt.Errorf("database is not running")
 	}

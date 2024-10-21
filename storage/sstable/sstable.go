@@ -254,6 +254,10 @@ func (me *SSTable) Header() Header {
 	return me.header
 }
 
+func (me *SSTable) NumEntries() uint64 {
+	return me.header.NumEntries
+}
+
 func (me *SSTable) Index() SparseMemIndex {
 	return SparseMemIndex{
 		ChunkSize: me.index.ChunkSize,

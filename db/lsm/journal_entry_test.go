@@ -13,7 +13,6 @@ func TestCUDKeyValueEntry_Serialization(t *testing.T) {
 	t.Parallel()
 
 	t.Run("not deleted", func(t *testing.T) {
-
 		storedKVP := (&keyvaluepair.KeyValuePair{
 			Key:   []byte("key1"),
 			Value: []byte("value1"),
@@ -35,7 +34,6 @@ func TestCUDKeyValueEntry_Serialization(t *testing.T) {
 	})
 
 	t.Run("deleted", func(t *testing.T) {
-
 		storedKVP := (&KeyValuePair{
 			Key: []byte("key1"),
 		}).ToStoredKeyValuePair()

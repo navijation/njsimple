@@ -223,8 +223,8 @@ func (me *LSMDB) Lookup(key []byte) (out keyvaluepair.KeyValuePair, exists bool,
 		if exists {
 			return keyvaluepair.KeyValuePair{
 				Key:       key,
-				Value:     entry.Key,
-				IsDeleted: false,
+				Value:     entry.Value,
+				IsDeleted: entry.IsDeleted,
 			}, true, nil
 		}
 	}
